@@ -175,8 +175,6 @@ interface formDataProps {
   dateOfBirth: string;
   gender: string;
   maritalStatus: string;
-  district: string
-  sector: string;
   cell?: string;
   emergencyContact: EmergencyContact
 }
@@ -198,8 +196,6 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegist
     dateOfBirth: '',
     gender: '',
     maritalStatus: '',
-    district: 'Musanze',
-    sector: '',
     cell: '',
     emergencyContact: {
       name: '',
@@ -237,8 +233,6 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegist
           password: formData.password,
           dateOfBirth: formData.dateOfBirth,
           gender: formData.gender as "Male" | "Female" | "Other",
-          district: formData.district,
-          sector: formData.sector,
           maritalStatus: formData.maritalStatus as "Single" | "Married" | "Divorced" | "Widowed",
           emergencyContact: formData.emergencyContact,
           cell: formData.cell
@@ -316,8 +310,6 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegist
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Membership Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input label="District" placeholder="e.g. Musanze" icon="location_city" name="district" value={formData.district} onChange={handleChange} />
-                <Input label="Sector" placeholder="e.g. Gahanga" icon="location_city" name="sector" value={formData.sector} onChange={handleChange} />
                 <Input label="Cell address" placeholder=' ' icon="location_city" name="cell" value={formData.cell} onChange={handleChange} />
                 <Input label="Occupation / Profession" placeholder="e.g. Student, Engineer" icon="work" name="profession" value={formData.profession} onChange={handleChange} />
               </div>
