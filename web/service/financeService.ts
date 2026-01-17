@@ -182,7 +182,7 @@ class FinanceApiService {
   private api: AxiosInstance;
 
   constructor(
-    baseURL: string = process.env.BACKEND_URL || "http://localhost:8000/api"
+    baseURL: string = import.meta.env.VITE_API_URL
   ) {
     this.api = axios.create({
       baseURL,
