@@ -12,26 +12,16 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  const allowedDomains = configService.get<string>('FRONTEND_URL');
-
-  const allowedOrigins = allowedDomains
-    ? allowedDomains.split(',').map((domain) => domain.trim())
-    : ['http://localhost:3000'];
-
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.error(`Blocked CORS request from origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://alm-musanze-website-web.vercel.app',
+      'https://terrific-empathy-production-7360.up.railway.app'
+    ],
     credentials: true,
-    optionsSuccessStatus: 200,
-    preflightContinue: false,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   app.useGlobalPipes(
