@@ -9,7 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { Event, Prisma } from '@/generated/prisma-client/client';
 import { CreateEventDTO, UpdateEventDTO } from './dto/create-event';
-import { format } from 'date-fns-tz';
+import { format } from 'date-fns';
 import { timeout } from 'rxjs';
 
 // DTOs
