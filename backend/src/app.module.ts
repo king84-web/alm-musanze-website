@@ -18,6 +18,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FinanceModule } from './finance/finance.module';
 import { AdminModule } from './admin/admin.module';
+import { HealthController } from './health.controller';
 @Module({
   imports: [
     PrismaModule,
@@ -40,6 +41,6 @@ import { AdminModule } from './admin/admin.module';
     }),
   ],
   providers: [PrismaService, AppService],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
 })
 export class AppModule {}

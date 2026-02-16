@@ -17,7 +17,7 @@ async function bootstrap() {
       'http://localhost:5173',
       'http://localhost:3000',
       'https://alm-musanze-website-web.vercel.app',
-      'https://terrific-empathy-production-7360.up.railway.app'
+      // TODO: Add Render backend URL here once deployed
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -43,8 +43,8 @@ async function bootstrap() {
       skip: (req, res) => res.statusCode === 304,
     }),
   );
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
-  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

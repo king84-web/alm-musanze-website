@@ -4,7 +4,8 @@ import { Card, Button, Badge, Input, Icon, EmptyState, CustomSelect, Textarea } 
 import { Event, Announcement, Album, Transaction, Photo } from '../../types';
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';
+import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';1
+
 import { Member } from '@/types';
 import { useAlmStore } from '@/store/useAppStore';
 import { fetcher } from '../hooks/use-fetcher';

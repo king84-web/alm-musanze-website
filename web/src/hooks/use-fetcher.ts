@@ -77,7 +77,7 @@ export const fetcher = async <T = any>(
     options.timeout || 30000
   );
   try {
-    const baseUrl = process.env.BACKEND_URL || "";
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
     const accessToken = getCookie("Authorization_token");
 
