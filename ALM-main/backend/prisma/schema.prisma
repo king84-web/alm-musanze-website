@@ -1,0 +1,529 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+/**
+ * =========================
+ * ENUMS
+ * =========================
+ */
+
+enum UserRole {
+  MEMBER
+  ADMIN
+}
+
+enum MemberStatus {
+  Pending
+  Active
+  Rejected
+  Suspended
+}
+
+enum PaymentStatus {
+  Paid
+  Unpaid
+  Partial
+}
+
+enum MembershipType {
+  Regular
+  Premium
+  Lifetime
+  Executive
+  Student
+  Honorary
+}
+
+enum Gender {
+  Male
+  Female
+  Other
+}
+
+enum EventStatus {
+  Upcoming
+  Ongoing
+  Completed
+  Cancelled
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+enum FeedbackStatus {
+  Unread
+  Read
+  Replied
+  Archived
+}
+
+enum ExecutiveCommitteePosition {
+  PRESIDENT
+  VICE_PRESIDENT
+  SECRETARY_GENERAL
+  DEPUTY_SECRETARY_GENERAL
+  TREASURER
+  DEPUTY_TREASURER
+  ORGANIZING_SECRETARY
+  PUBLIC_RELATIONS_OFFICER
+  LEGAL_ADVISOR
+  AUDITOR
+  MEMBER_AT_LARGE
+}
+
+/**
+ * ===== Finance Enums =====
+ */
+
+enum AccountType {
+  CASH
+  BANK
+  MOBILE_MONEY
+}
+
+enum InvoiceStatus {
+  Pending
+  Paid
+  Cancelled
+}
+
+enum ExpenseStatus {
+  Draft
+  Submitted
+  Approved
+  Rejected
+  Paid
+}
+
+enum PaymentMethod {
+  Cash
+  BankTransfer
+  MobileMoney
+  Card
+}
+
+enum PayerType {
+  MEMBER
+  EXTERNAL_USER
+  ORGANIZATION
+}
+
+enum PaymentPurpose {
+  MEMBERSHIP_FEE
+  SUBSCRIPTION
+  DONATION
+  EVENT_TICKET
+  SERVICE_FEE
+  PRODUCT_PURCHASE
+  LOAN_REPAYMENT
+  LOAN_DISBURSEMENT
+  PENALTY
+  FINE
+  CONTRIBUTION
+  INVOICE_PAYMENT
+  REGISTRATION_FEE
+  SYSTEM_CHARGE
+  OTHER
+}
+
+/**
+ * =========================
+ * MODELS
+ * =========================
+ */
+
+model ExecutiveCommittee {
+  id        String                     @id @default(uuid())
+  memberId  String
+  position  ExecutiveCommitteePosition
+  startDate DateTime
+  endDate   DateTime?
+
+  @@index([memberId])
+}
+
+model Member {
+  id             String                      @id @default(uuid())
+  firstName      String
+  lastName       String
+  email          String                      @unique
+  password       String
+  phone          String
+  avatar         String?
+  bio            String?
+  membershipId   String                      @unique
+  status         MemberStatus                @default(Pending)
+  gender         Gender                      @default(Other)
+  dateOfBirth    String?
+  nationality    String?
+  district       String?
+  sector         String?
+  cell           String?
+  membershipType MembershipType              @default(Regular)
+  paymentStatus  PaymentStatus               @default(Unpaid)
+  joinDate       DateTime                    @default(now())
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  maritalStatus  String?
+  occupation     String?
+  county         String?
+  position       ExecutiveCommitteePosition? @default(MEMBER_AT_LARGE)
+  role           UserRole                    @default(MEMBER) @map("Role")
+
+  // Existing relations
+  emergencyContact     EmergencyContact?
+  documents            Document[]
+  rsvps                EventRSVP[]
+  loginLogs            LoginLog[]
+  feedback             Feedback[]
+  photos               Photo[]
+  payments             Payment[]         @relation("MemberPayments")
+  invoices             Invoice[]         @relation("MemberInvoices")
+  transactions         Transaction[]     @relation("MemberTransactions")
+  transactionsApproved Transaction[]     @relation("TransactionApprover")
+  expensesRequested    Expense[]         @relation("ExpenseRequester")
+  expensesApproved     Expense[]         @relation("ExpenseApprover")
+
+  // Announcement relations
+  createdBy              Announcement[] @relation("AnnouncementCreator")
+  AnnouncementApprovedBY Announcement[] @relation("AnnouncementApproval")
+
+  @@map("members")
+}
+
+/**
+ * =========================
+ * FINANCE MODELS
+ * =========================
+ */
+
+model FinancialAccount {
+  id          String      @id @default(uuid())
+  name        String
+  type        AccountType
+  balance     Float       @default(0)
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  transactions Transaction[]
+
+  @@map("financial_accounts")
+}
+
+model Transaction {
+  id            String          @id @default(uuid())
+  reference     String?
+  description   String
+  amount        Float
+  type          TransactionType
+  category      String
+  paymentMethod PaymentMethod
+  date          DateTime        @default(now())
+
+  // Link to Financial Account (REQUIRED)
+  accountId String
+  account   FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  // Link to Member (OPTIONAL - for member-related transactions)
+  memberId String?
+  member   Member? @relation("MemberTransactions", fields: [memberId], references: [id], onDelete: SetNull)
+
+  approvedById String?
+  approvedBy   Member? @relation("TransactionApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  paymentId String?  @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  expenseId String?  @unique
+  expense   Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+  @@index([memberId])
+  @@index([date])
+  @@index([type])
+  @@map("transactions")
+}
+
+model Payer {
+  id        String    @id @default(uuid())
+  type      PayerType
+  name      String?
+  email     String?
+  phone     String?
+  createdAt DateTime  @default(now())
+  payment   Payment[] @relation("Payment")
+}
+
+model Payment {
+  id          String         @id @default(uuid())
+  memberId    String?
+  member      Member?        @relation("MemberPayments", fields: [memberId], references: [id], onDelete: Cascade)
+  amount      Float
+  purpose     PaymentPurpose @default(OTHER)
+  method      PaymentMethod
+  description String?
+  payerType   PayerType      @default(MEMBER) @map("payType")
+  status      PaymentStatus  @default(Unpaid)
+  reference   String?
+  paidAt      DateTime?
+  createdAt   DateTime       @default(now())
+  invoiceId   String?
+  invoice     Invoice?       @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  transaction Transaction?
+  payer       Payer?         @relation(name: "Payment", fields: [payerId], references: [id])
+  payerId     String?
+
+  createdBy String?
+
+  @@index([memberId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Invoice {
+  id           String        @id @default(uuid())
+  memberId     String
+  member       Member        @relation("MemberInvoices", fields: [memberId], references: [id], onDelete: Cascade)
+  amount       Float
+  description  String
+  status       InvoiceStatus @default(Pending)
+  dueDate      DateTime
+  issuedAt     DateTime      @default(now())
+  paidAt       DateTime?
+  payments     Payment[]
+  transactions Transaction[]
+
+  @@index([memberId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model Expense {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  amount      Float
+  status      ExpenseStatus @default(Draft)
+  requestedBy String
+  requester   Member        @relation("ExpenseRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  approvedBy  String?
+  approver    Member?       @relation("ExpenseApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  transaction Transaction?
+
+  @@index([requestedBy])
+  @@index([approvedBy])
+  @@index([status])
+  @@map("expenses")
+}
+
+/**
+ * =========================
+ * EXISTING MODELS
+ * =========================
+ */
+
+model EmergencyContact {
+  id       String @id @default(uuid())
+  name     String
+  relation String
+  phone    String
+  memberId String @unique
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@map("emergency_contacts")
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  name      String
+  url       String
+  type      String
+  size      Int?
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+  @@map("documents")
+}
+
+model Event {
+  id                   String      @id @default(uuid())
+  title                String
+  description          String      @db.Text
+  date                 DateTime
+  startTime            String      @map("time")
+  location             String
+  category             String
+  organizer            String      @default("Community Association")
+  contactEmail         String?
+  eventfee             Float?      @default(0)
+  maxAttendees         Int?
+  status               EventStatus @default(Upcoming)
+  image                String?
+  rsvpCount            Int         @default(0)
+  registrationRequired Boolean     @default(false)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  speakers    Speaker[]
+  agenda      AgendaItem[]
+  attachments Attachment[]
+  attendees   EventRSVP[]
+
+  @@index([date])
+  @@index([status])
+  @@map("events")
+}
+
+model EventRSVP {
+  id        String   @id @default(uuid())
+  eventId   String
+  memberId  String
+  attended  Boolean  @default(false)
+  status    String   @default("Pending")
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, memberId])
+  @@index([eventId])
+  @@index([memberId])
+  @@map("event_rsvps")
+}
+
+model Speaker {
+  id      String  @id @default(uuid())
+  name    String
+  title   String
+  bio     String?
+  photo   String?
+  eventId String
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("speakers")
+}
+
+model AgendaItem {
+  id          String  @id @default(uuid())
+  time        String
+  activity    String  @map("title")
+  description String?
+  eventId     String
+  event       Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("agenda_items")
+}
+
+model Attachment {
+  id      String @id @default(uuid())
+  name    String
+  url     String
+  type    String
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("attachments")
+}
+
+model Album {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  coverImage  String?
+  date        String
+  photoCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  photos Photo[]
+
+  @@map("albums")
+}
+
+model Photo {
+  id         String   @id @default(uuid())
+  url        String
+  caption    String?
+  albumId    String
+  album      Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  uploadedBy String?
+  uploader   Member?  @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([albumId])
+  @@index([uploadedBy])
+  @@map("photos")
+}
+
+model Announcement {
+  id        String  @id @default(cuid())
+  title     String
+  content   String
+  published Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdById String
+  createdBy   Member @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  requiresApproval Boolean @default(false)
+  approvedById     String?
+  approvedBy       Member? @relation("AnnouncementApproval", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([createdById])
+  @@index([approvedById])
+}
+
+model Feedback {
+  id        String         @id @default(uuid())
+  subject   String
+  message   String         @db.Text
+  sender    String
+  email     String
+  status    FeedbackStatus @default(Unread)
+  isRead    Boolean        @default(false)
+  avatar    String?
+  memberId  String?
+  member    Member?        @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([memberId])
+  @@index([status])
+  @@map("feedback")
+}
+
+model LoginLog {
+  id        String   @id @default(uuid())
+  userId    String
+  userName  String
+  email     String
+  role      UserRole
+  status    String
+  ip        String
+  timestamp DateTime @default(now())
+  memberId  String?
+  member    Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  @@index([memberId])
+  @@index([timestamp])
+  @@map("login_logs")
+}
